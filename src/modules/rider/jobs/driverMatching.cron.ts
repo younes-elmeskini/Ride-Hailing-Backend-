@@ -37,11 +37,13 @@ cron.schedule("*/5 * * * * *", async () => {
       data: { status: "AVAILABLE" },
     });
 
-    // 4️⃣ find next nearest driver (excluding previous)
+    // 4️⃣ find next nearest driver (excluding previous, with position)
     const drivers = await prisma.driver.findMany({
       where: {
         status: "AVAILABLE",
         id: { not: offer.driverId },
+        lat: { not: null },
+        lng: { not: null },
       },
     });
 
