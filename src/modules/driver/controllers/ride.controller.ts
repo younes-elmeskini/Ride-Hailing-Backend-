@@ -32,7 +32,20 @@ export default class RideController {
     try {
       const driverId = req.driver?.id;
       const driverOffers = await prisma.driverOffer.findMany({
-        where: { driverId },
+        where: { driverId , status: 'PENDING'},
+        include: {
+          ride: {
+            select: {
+              id: true,
+              startLat: true,
+              startLng: true,
+              distance: true,
+              price: true,
+              duration: true,
+            },
+          },
+        },
+    
       });
       if (driverOffers.length === 0) {
         res.status(400).json({ message: 'No driver offers found' });
@@ -47,17 +60,15 @@ export default class RideController {
 
   static async confirmDriverOffer(req: Request, res: Response): Promise<void> {
     try {
-      const { driverId, rideId } = req.body;
-
+      const { rideId } = req.body;
+      const driverId = req.driver?.id;
       if (!driverId || !rideId) {
         res.status(400).json({ error: 'driverId and rideId are required' });
         return;
       }
-
       // Find the driverOffer
       const driverOffer = await prisma.driverOffer.findFirst({
         where: {
-          driverId,
           rideId,
           status: 'PENDING',
         },
