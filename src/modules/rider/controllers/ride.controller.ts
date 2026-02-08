@@ -150,7 +150,7 @@ export default class RideController {
       );
       const price = calculatePrice(distance);
       const eta = estimateEtaMinutes(distance);
-      
+
       res.status(200).json({ distance, eta, price });
     } catch (error) {
       console.error(error);
@@ -190,6 +190,10 @@ export default class RideController {
         prisma.ride.update({
           where: { id: ride.id },
           data: { status: "CANCELLED" },
+        }),
+        prisma.driverOffer.updateMany({
+          where: { rideId: ride.id },
+          data: { status: "REJECTED" },
         }),
         prisma.rideEvent.create({
           data: {
