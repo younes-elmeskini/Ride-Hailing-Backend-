@@ -3,9 +3,11 @@ import prisma from "../../../utils/client";
 import RideValidation from "../utils/validation/ride";
 import { validationResult } from "../../../utils/validation/validationResult";
 import { z } from "zod";
-import { checkRateLimit, haversineDistance, calculatePrice } from "../utils/helperfunctions";
+import { checkRateLimit, haversineDistance, calculatePrice, estimateEtaMinutes } from "../utils/helperfunctions";
 
 type CreateRideInput = z.infer<typeof RideValidation.createRideSchema>;
+type EstimateRideInput = z.infer<typeof RideValidation.estimateRideSchema>;
+type CancelRideInput = z.infer<typeof RideValidation.cancelRideSchema>;
 
 export default class RideController {
   // estimation de time, price, distance
@@ -128,6 +130,97 @@ export default class RideController {
       }
 
       res.status(201).json({ message: "Ride created successfully", ride });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Internal server error." });
+    }
+  }
+
+  static async estimateRide(req: Request, res: Response): Promise<void> {
+    try {
+      if (!validationResult(RideValidation.estimateRideSchema, req, res)) {
+        return;
+      }
+      const parsedData: EstimateRideInput = RideValidation.estimateRideSchema.parse(req.body);
+      const distance = haversineDistance(
+        parsedData.startLat,
+        parsedData.startLng,
+        parsedData.endLat,
+        parsedData.endLng
+      );
+      const price = calculatePrice(distance);
+      const eta = estimateEtaMinutes(distance);
+      
+      res.status(200).json({ distance, eta, price });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Internal server error." });
+    }
+  }
+
+  static async cancelRide(req: Request, res: Response): Promise<void> {
+    try {
+      if (!validationResult(RideValidation.cancelRideSchema, req, res)) {
+        return;
+      }
+      const parsedData: CancelRideInput = RideValidation.cancelRideSchema.parse(req.body);
+      const riderId = req.rider?.id;
+      if (!riderId) {
+        res.status(401).json({ message: "Unauthorized: Rider not found." });
+        return;
+      }
+      const ride = await prisma.ride.findFirst({
+        where: { id: parsedData.rideId, riderId },
+      });
+      if (!ride) {
+        res.status(404).json({ message: "Ride not found." });
+        return;
+      }
+      if (ride.status === "CANCELLED") {
+        res.status(400).json({ message: "Ride is already cancelled." });
+        return;
+      }
+      const isMatching = ride.status === "MATCHING";
+      if (!isMatching && !parsedData.reason?.trim()) {
+        res.status(400).json({ message: "Reason is required when cancelling a ride after driver assignment." });
+        return;
+      }
+      const payload = parsedData.reason ? JSON.stringify({ reason: parsedData.reason }) : null;
+      await prisma.$transaction([
+        prisma.ride.update({
+          where: { id: ride.id },
+          data: { status: "CANCELLED" },
+        }),
+        prisma.rideEvent.create({
+          data: {
+            rideId: ride.id,
+            eventType: "CANCELLED",
+            payload,
+          },
+        }),
+      ]);
+      res.status(200).json({ message: "Ride cancelled successfully." });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Internal server error." });
+    }
+  }
+
+  static async rideHistory(req: Request, res: Response): Promise<void> {
+    try {
+      const riderId = req.rider?.id;
+      if (!riderId) {
+        res.status(401).json({ message: "Unauthorized: Rider not found." });
+        return;
+      }
+      const rides = await prisma.ride.findMany({
+        where: { riderId },
+        orderBy: { createdAt: "desc" },
+        include: {
+          driver: { select: { id: true, fullName: true, email: true } },
+        },
+      });
+      res.status(200).json({ rides });
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: "Internal server error." });

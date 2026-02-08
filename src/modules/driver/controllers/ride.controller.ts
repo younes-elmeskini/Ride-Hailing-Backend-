@@ -96,6 +96,113 @@ export default class RideController {
        res.status(500).json({ error: 'Failed to confirm driver offer', details: error.message });
     }
   }
+
+  static async driverArrived(req: Request, res: Response): Promise<void> {
+    try {
+      const { rideId } = req.body;
+      const driverId = req.driver?.id;
+      if (!driverId || !rideId) {
+        res.status(400).json({ error: 'rideId is required' });
+        return;
+      }
+      const ride = await prisma.ride.findFirst({
+        where: { id: rideId, driverId },
+      });
+      if (!ride) {
+        res.status(404).json({ error: 'Ride not found or you are not assigned to this ride' });
+        return;
+      }
+      if (ride.status !== 'DRIVER_ASSIGNED') {
+        res.status(400).json({ error: 'Ride status must be DRIVER_ASSIGNED to mark as arrived' });
+        return;
+      }
+      await prisma.$transaction([
+        prisma.ride.update({
+          where: { id: rideId },
+          data: { status: 'ARRIVED' },
+        }),
+        prisma.rideEvent.create({
+          data: { rideId, eventType: 'ARRIVED' },
+        }),
+      ]);
+      res.status(200).json({ message: 'Driver arrived successfully' });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to update ride', details: error.message });
+    }
+  }
+
+  static async startRide(req: Request, res: Response): Promise<void> {
+    try {
+      const { rideId } = req.body;
+      const driverId = req.driver?.id;
+      if (!driverId || !rideId) {
+        res.status(400).json({ error: 'rideId is required' });
+        return;
+      }
+      const ride = await prisma.ride.findFirst({
+        where: { id: rideId, driverId },
+      });
+      if (!ride) {
+        res.status(404).json({ error: 'Ride not found or you are not assigned to this ride' });
+        return;
+      }
+      if (ride.status !== 'ARRIVED') {
+        res.status(400).json({ error: 'Ride status must be ARRIVED to start' });
+        return;
+      }
+      await prisma.$transaction([
+        prisma.ride.update({
+          where: { id: rideId },
+          data: { status: 'ONGOING', startDate: new Date() },
+        }),
+        prisma.rideEvent.create({
+          data: { rideId, eventType: 'STARTED' },
+        }),
+      ]);
+      res.status(200).json({ message: 'Ride started successfully' });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to start ride', details: error.message });
+    }
+  }
+
+  static async completeRide(req: Request, res: Response): Promise<void> {
+    try {
+      const { rideId } = req.body;
+      const driverId = req.driver?.id;
+      if (!driverId || !rideId) {
+        res.status(400).json({ error: 'rideId is required' });
+        return;
+      }
+      const ride = await prisma.ride.findFirst({
+        where: { id: rideId, driverId },
+      });
+      if (!ride) {
+        res.status(404).json({ error: 'Ride not found or you are not assigned to this ride' });
+        return;
+      }
+      if (ride.status !== 'ONGOING') {
+        res.status(400).json({ error: 'Ride status must be ONGOING to complete' });
+        return;
+      }
+      const endDate = new Date();
+      await prisma.$transaction([
+        prisma.ride.update({
+          where: { id: rideId },
+          data: { status: 'COMPLETED', endDate },
+        }),
+        prisma.driver.update({
+          where: { id: driverId },
+          data: { status: 'AVAILABLE' },
+        }),
+        prisma.rideEvent.create({
+          data: { rideId, eventType: 'COMPLETED' },
+        }),
+      ]);
+      res.status(200).json({ message: 'Ride completed successfully' });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to complete ride', details: error.message });
+    }
+  }
 }
 
 

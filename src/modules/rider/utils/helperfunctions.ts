@@ -22,6 +22,12 @@ export function haversineDistance(
     const perKm = 2; // per km
     return baseFare + distance * perKm;
   }
+
+  /** ETA in minutes, assuming ~30 km/h average speed */
+  export function estimateEtaMinutes(distanceKm: number): number {
+    const avgSpeedKmh = 30;
+    return Math.round((distanceKm / avgSpeedKmh) * 60);
+  }
   
   export async function checkRateLimit(riderId: string): Promise<boolean> {
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000); // 10 minutes ago

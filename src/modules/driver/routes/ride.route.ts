@@ -7,5 +7,8 @@ const router = express.Router();
 router.post("/confirm-ride", authenticate, RideController.confirmDriverOffer);
 router.get("/offers", authenticate, RideController.getDriverOffers);
 router.put("/update-location", authenticate, RideController.updateLocation);
+router.post("/arrived", authenticate, RideController.driverArrived);
+router.post("/start", authenticate, RideController.startRide);
+router.post("/complete", authenticate, RideController.completeRide);
 
 export default router;
