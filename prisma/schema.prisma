@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum StatusDriver {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+enum StatusRide {
+  MATCHING
+  DRIVER_ASSIGNED
+  ARRIVED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+model Admin {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  fullName  String
+  email     String    @unique
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+}
+
+model Driver {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  fullName     String
+  email        String        @unique
+  password     String
+  lat          Float?
+  lng          Float?
+  status       StatusDriver  @default(AVAILABLE)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  deletedAt    DateTime?     @map("deleted_at")
+
+  // Relations
+  driverOffers DriverOffer[] @relation("DriverToDriverOffer")
+  rides        Ride[]        @relation("DriverToRide")
+}
+
+model Rider {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  fullName  String
+  email     String    @unique
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  rides     Ride[]
+}
+
+model Ride {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  riderId      String        @db.ObjectId
+  driverId     String?       @db.ObjectId
+  startLat     Float
+  startLng     Float
+  endLat       Float
+  endLng       Float
+  distance     Float?
+  price        Float?
+  duration     Float?
+  startDate    DateTime?
+  endDate      DateTime?
+  status       StatusRide    @default(MATCHING)
+
+  // Relations
+  rider        Rider         @relation(fields: [riderId], references: [id])
+  driver       Driver?       @relation("DriverToRide", fields: [driverId], references: [id], onDelete: SetNull)
+  driverOffers DriverOffer[] @relation("RideToDriverOffer")
+  rideOffers   DriverOffer[] @relation("RideToRideOffer")
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  deletedAt    DateTime?     @map("deleted_at")
+}
+
+model DriverOffer {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  driverId  String    @db.ObjectId
+  rideId    String    @db.ObjectId
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  driver    Driver    @relation("DriverToDriverOffer", fields: [driverId], references: [id], onDelete: Cascade)
+  ride      Ride      @relation("RideToDriverOffer", fields: [rideId], references: [id], onDelete: Cascade)
+  rideOfferFor Ride?  @relation("RideToRideOffer", fields: [rideId], references: [id])
+}
