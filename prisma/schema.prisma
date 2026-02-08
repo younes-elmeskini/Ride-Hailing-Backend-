@@ -34,6 +34,15 @@ enum StatusDriverOffer {
   REJECTED
 }
 
+enum RideEventType {
+  REQUESTED
+  CANCELLED
+  DRIVER_ASSIGNED
+  ARRIVED
+  STARTED
+  COMPLETED
+}
+
 model Admin {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
   fullName  String
@@ -92,10 +101,21 @@ model Ride {
   driver       Driver?       @relation("DriverToRide", fields: [driverId], references: [id], onDelete: SetNull)
   driverOffers DriverOffer[] @relation("RideToDriverOffer")
   rideOffers   DriverOffer[] @relation("RideToRideOffer")
+  rideEvents   RideEvent[]
 
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt @map("updated_at")
   deletedAt    DateTime?     @map("deleted_at")
+}
+
+model RideEvent {
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  rideId    String        @db.ObjectId
+  eventType RideEventType
+  payload   String?       // optional JSON e.g. { "reason": "..." }
+  createdAt DateTime      @default(now())
+
+  ride      Ride          @relation(fields: [rideId], references: [id], onDelete: Cascade)
 }
 
 model DriverOffer {
