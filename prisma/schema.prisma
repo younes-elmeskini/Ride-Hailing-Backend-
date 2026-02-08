@@ -28,6 +28,12 @@ enum StatusRide {
   CANCELLED
 }
 
+enum StatusDriverOffer {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 model Admin {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
   fullName  String
@@ -96,13 +102,13 @@ model DriverOffer {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
   driverId  String    @db.ObjectId
   rideId    String    @db.ObjectId
+  status    StatusDriverOffer @default(PENDING)
   expiresAt DateTime
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  deletedAt DateTime?     @map("deleted_at")
   // Relations
-  driver    Driver    @relation("DriverToDriverOffer", fields: [driverId], references: [id], onDelete: Cascade)
-  ride      Ride      @relation("RideToDriverOffer", fields: [rideId], references: [id], onDelete: Cascade)
-  rideOfferFor Ride?  @relation("RideToRideOffer", fields: [rideId], references: [id])
+  driver    Driver          @relation("DriverToDriverOffer", fields: [driverId], references: [id], onDelete: Cascade)
+  ride      Ride            @relation("RideToDriverOffer", fields: [rideId], references: [id], onDelete: Cascade)
+  rideOfferFor Ride?        @relation("RideToRideOffer", fields: [rideId], references: [id])
 }

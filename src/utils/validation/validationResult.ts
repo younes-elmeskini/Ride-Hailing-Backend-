@@ -3,7 +3,7 @@ export const validationResult = (schema: any, req: any, res: any) => {
 
   if (!result.success) {
     const firstError =
-      result.error?.errors?.[0]?.message || "Validation error.";
+      result.error?.errors?.[0]?.message ;
     res.status(400).json({ message: firstError });
     return false;
   }
