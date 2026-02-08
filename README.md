@@ -45,8 +45,17 @@ Le serveur tourne par défaut sur **http://localhost:7600**.
 ```bash
 npm run build      # Compiler TypeScript → dist/
 npm start          # Lancer en production (node dist/server.js)
-npm run seed       # Peupler la BDD (si script seed présent)
+npm run seed       # Créer des drivers près de Paris (voir ci‑dessous)
 ```
+
+### Seed data (drivers)
+
+La commande `npm run seed` crée **5 drivers** avec `lat`/`lng` proches de **Paris (48.8566, 2.3522)** pour tester les courses et le matching.
+
+- **Mot de passe commun** pour tous : `Driver123!`
+- **Emails** : `jean.driver@test.com`, `marie.driver@test.com`, `pierre.driver@test.com`, `sophie.driver@test.com`, `lucas.driver@test.com`
+
+Relancer le seed met à jour leurs positions et remet leur statut en `AVAILABLE`.
 
 ---
 
