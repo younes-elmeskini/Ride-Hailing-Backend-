@@ -75,6 +75,7 @@ export default class AuthController {
 
       res.status(200).json({
         message: "Login successful",
+        token,
         isProduction: isProduction,
       });
     } catch (error) {

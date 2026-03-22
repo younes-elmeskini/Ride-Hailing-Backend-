@@ -3,6 +3,28 @@ import prisma from '../../../utils/client';
 
 export default class RideController {
 
+  static async getActiveRide(req: Request, res: Response): Promise<void> {
+    try {
+      const driverId = req.driver?.id;
+      if (!driverId) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+      const ride = await prisma.ride.findFirst({
+        where: {
+          driverId,
+          status: {
+            in: ['DRIVER_ASSIGNED', 'ARRIVED', 'ONGOING'],
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
+      });
+      res.status(200).json({ ride: ride ?? null });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to get active ride', details: error.message });
+    }
+  }
+
   static async updateLocation(req: Request, res: Response): Promise<void> {
     try {
       const {lat, lng } = req.body;
@@ -39,16 +61,19 @@ export default class RideController {
               id: true,
               startLat: true,
               startLng: true,
+              endLat: true,
+              endLng: true,
               distance: true,
               price: true,
               duration: true,
+              status: true,
             },
           },
         },
     
       });
       if (driverOffers.length === 0) {
-        res.status(400).json({ message: 'No driver offers found' });
+        res.status(200).json({ message: 'No driver offers found', driverOffers: [] });
         return;
       }
       res.status(200).json({ message: 'Driver offers fetched successfully', driverOffers });

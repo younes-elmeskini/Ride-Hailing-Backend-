@@ -4,6 +4,7 @@ import {authenticate} from "../middleware/auth";
 
 const router = express.Router();
 
+router.get("/active", authenticate, RideController.getActiveRide);
 router.post("/confirm-ride", authenticate, RideController.confirmDriverOffer);
 router.get("/offers", authenticate, RideController.getDriverOffers);
 router.put("/update-location", authenticate, RideController.updateLocation);
